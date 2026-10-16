@@ -1,0 +1,9 @@
+name out/bootloader/stage2.bin
+format raw bin
+
+option nodefaultlibs
+option start=stage2_entry
+option map=out/bootloader/stage2.map
+
+file out/bootloader/stage2_start.obj
+file out/bootloader/stage2.obj
