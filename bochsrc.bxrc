@@ -1,0 +1,108 @@
+#=======================================================================
+# bochsrc.txt - Bochs configuration for mOS
+#=======================================================================
+# Bochs resolves every relative path in this file against the *current
+# working directory*, not against the location of this file, so always
+# start it from the repository root:
+#
+#   just bochs        build, then boot the floppy in Bochs
+#   just debug        build, then boot in Bochs with the GUI debugger
+#
+# Or by hand:
+#
+#   bochs -q -f bochsrc.txt                  boot straight from floppy
+#   bochs -q -f bochsrc.txt -dbg_gui         same, GUI debugger, stopped
+#                                            at the reset vector
+#
+# The `-dbg_gui` flag is what actually starts the debugger; `debugger:
+# gui=true` below only tells it to use the GUI when it comes up.
+#
+# Debugger commands worth knowing (help for the rest):
+#   c                  continue
+#   s / si             step one instruction
+#   b 0x7c00           set a breakpoint
+#   x /32bx 0x7c00     examine memory
+#   r                  show all registers
+#=======================================================================
+
+#-----------------------------------------------------------------------
+# Machine
+#-----------------------------------------------------------------------
+# 16 MB is plenty for a real-mode toy OS and keeps debugger dumps small.
+memory: guest=16, host=16
+
+# The Bochs BIOS (rombios32) needs a CPUID-capable CPU, so the 386SX model
+# triple-faults on every boot. A Pentium is the oldest model that works here,
+# and nothing mOS does in real mode notices the difference.
+cpu: model=pentium, count=1, ips=10000000, reset_on_triple_fault=1
+
+# Plain ISA machine: no PCI bus, no legacy DMA surprises.
+pci: enabled=0
+
+#-----------------------------------------------------------------------
+# ROMs
+#-----------------------------------------------------------------------
+romimage: file=$BXSHARE/BIOS-bochs-latest
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest.bin
+
+#-----------------------------------------------------------------------
+# Display
+#-----------------------------------------------------------------------
+# Native Win32 display. `cmdmode` adds a headerbar button for the built-in
+# console (F7 inside the guest window), handy when the debugger window covers
+# the screen. On Linux/macOS builds use `sdl2` instead - the option list is
+# the same.
+display_library: win32, options="cmdmode"
+
+# Standard VGA with no extensions - m.s programs the VGA registers itself.
+vga: extension=none, update_freq=5
+
+#-----------------------------------------------------------------------
+# Boot device
+#-----------------------------------------------------------------------
+floppya: 1_44=out/main_floppy.img, status=inserted
+boot: floppy
+
+# Leave the 0xAA55 check enabled: main.s must keep its boot signature.
+floppy_bootsig_check: disabled=0
+
+#-----------------------------------------------------------------------
+# Debugging aids
+#-----------------------------------------------------------------------
+# `magic_break` turns the no-op instruction `xchg bx, bx` into a breakpoint.
+# Drop that instruction in your code where you want to land in the debugger.
+magic_break: enabled=1 bx
+
+# Port 0xE9 is Bochs' convention for early debug output: `out al, 0xE9`
+# from real mode prints the character into the log file below.
+port_e9_hack: enabled=1
+
+# Drop a log of every command and its answer next to the image.
+debugger: log=out/bochs-debugger.log, gui=true
+
+#-----------------------------------------------------------------------
+# Keyboard / mouse / serial / speaker
+#-----------------------------------------------------------------------
+# xt + short delays so the 8250 in stage2 sees keystrokes at 8086-era speed.
+keyboard: type=xt, serial_delay=50, paste_delay=50000
+mouse: enabled=0
+
+# Capture guest writes to COM1 (0x3F8) to a file for serial debug output.
+com1: enabled=1, mode=file, dev=out/com1.log
+
+# Beeps go to the host speaker through the Windows Beep() API.
+speaker: enabled=1, mode=system, volume=8
+
+#-----------------------------------------------------------------------
+# Logging
+#-----------------------------------------------------------------------
+log: out/bochs.log
+logprefix: %t%e%d
+
+panic: action=ask
+error: action=report
+info: action=report
+debug: action=ignore
+
+# Uncomment to trace device init and floppy I/O while bringing up new code.
+#info: action=report, floppy=report
