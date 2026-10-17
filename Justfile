@@ -1,7 +1,7 @@
 [windows]
 set shell := ["powershell.exe", "-NoLogo", "-Command"]
 
-WCC_FLAGS := "-q -0 -ms -s -zl"
+WCC_FLAGS := "-q -0 -ml -s -zl"
 all: bootloader kernel
 
 [private]
@@ -15,6 +15,11 @@ stage2:
 	{{ if os_family() == "windows" { "Move-Item -Force stage2.obj out/bootloader/stage2.obj" } else { "mv stage2.o out/bootloader/stage2.obj" } }}
 	nasm -f obj bootloader/bios/stage2.s -o out/bootloader/stage2_start.obj
 	wlink @bootloader/bios/stage2.lnk
+	{{ if os_family() == "windows" {
+	"Get-Content out/bootloader/stage2.map | ForEach-Object { if ($_ -match '^[ ]*([0-9A-Fa-f]+)[+ ]+[ ]+([_a-zA-Z0-9]+)_?[ ]*$') { '{0} {1}' -f $Matches[1].ToLower().PadLeft(8, '0'), $Matches[2] } } | Out-File -Encoding ascii out/bootloader/stage2.sym"
+	} else {
+	"awk '/^[0-9A-Fa-f]+/ {gsub(/\\+/, \"\", $1); print lcase($1) \" \" $2}' out/bootloader/stage2.map > out/bootloader/stage2.sym"
+	} }}
 
 bootloader: stage1 stage2
 	truncate -s 1440k out/main_floppy.img

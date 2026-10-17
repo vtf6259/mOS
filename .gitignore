@@ -1,5 +1,10 @@
+# build
 out
 
 # emacs
 *~
 \#*\#
+
+# bochs
+bochsout.txt
+bx_enh_dbg.ini
