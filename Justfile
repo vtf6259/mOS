@@ -12,7 +12,7 @@ stage1:
 [private]
 stage2:
 	wcc {{WCC_FLAGS}} bootloader/bios/stage2.c
-	{{ if os_family() == "windows" { "Move-Item -Force stage2.obj out/bootloader/stage2.obj" } else { "mv stage2.obj out/bootloader/stage2.obj" } }}
+	{{ if os_family() == "windows" { "Move-Item -Force stage2.obj out/bootloader/stage2.obj" } else { "mv stage2.o out/bootloader/stage2.obj" } }}
 	nasm -f obj bootloader/bios/stage2.s -o out/bootloader/stage2_start.obj
 	wlink @bootloader/bios/stage2.lnk
 
